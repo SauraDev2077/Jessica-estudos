@@ -32,7 +32,7 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body { height: 100%; }
+html, body { height: 100%; margin: 0; padding: 0; }
 
 body {
   font-family: 'Outfit', sans-serif;
@@ -40,7 +40,11 @@ body {
   color: var(--text);
   font-size: 14px;
   line-height: 1.6;
-  display: flex;
+}
+
+#appRoot {
+  display: none;
+  flex-direction: row;
   height: 100vh;
   overflow: hidden;
 }
@@ -1124,9 +1128,153 @@ body {
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-</style>
+
+/* ── LOGIN ────────────────────────────────── */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.4s ease;
+}
+
+.login-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 44px 40px 36px;
+  width: 380px;
+  max-width: 92vw;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+.login-logo {
+  font-family: 'Lora', serif;
+  font-size: 26px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.login-logo em { color: #c49a4a; font-style: italic; }
+
+.login-tagline {
+  font-size: 12px;
+  color: var(--text-3);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 32px;
+}
+
+.login-field {
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.login-field label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+}
+
+.login-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.login-input:focus { border-color: var(--accent); }
+.login-input.shake { animation: loginShake 0.35s ease; border-color: #b84c4c; }
+
+@keyframes loginShake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 9px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.login-btn:hover { background: #3a3935; transform: translateY(-1px); }
+.login-btn:active { transform: translateY(0); }
+
+.login-error {
+  font-size: 12.5px;
+  color: #b84c4c;
+  margin-top: 10px;
+  min-height: 18px;
+  transition: opacity 0.2s;
+}
+
+.login-footer {
+  margin-top: 28px;
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.6;
+}
+
+.app-hidden { display: none !important; }</style>
 </head>
 <body>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">Para <em>Jéssica</em> ✦</div>
+    <div class="login-tagline">Organizador de Estudos</div>
+
+    <div class="login-field">
+      <label>Usuário</label>
+      <input class="login-input" id="loginUser" type="text" placeholder="seu usuário…" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input class="login-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="loginError"></div>
+
+    <div class="login-footer">
+      Seu espaço pessoal de estudos ✦<br>Acesso exclusivo
+    </div>
+  </div>
+</div>
+
+<!-- APP (escondido até login) -->
+<div id="appRoot" style="display:none;height:100vh;display:none;flex-direction:row;width:100%">
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -1360,6 +1508,8 @@ body {
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+</div><!-- /appRoot -->
 
 <script>
 // ══════════════════════════════════════════
@@ -2319,20 +2469,73 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ══════════════════════════════════════════
-// INIT — abre IndexedDB antes de renderizar
+// LOGIN
 // ══════════════════════════════════════════
-openIDB().then(db_ => {
-  idb = db_;
-  renderSidebarFolders();
-  renderDashboard();
-  renderIAHub();
-}).catch(err => {
-  console.error('IndexedDB falhou:', err);
-  // fallback: renderiza mesmo assim
-  renderSidebarFolders();
-  renderDashboard();
-  renderIAHub();
-});
+const LOGIN_USER = 'jessicasimao';
+const LOGIN_PASS = 'cookie123';
+const SESSION_KEY = 'jessica_auth_v1';
+
+function checkSession() {
+  return sessionStorage.getItem(SESSION_KEY) === 'ok';
+}
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  const userEl = document.getElementById('loginUser');
+  const passEl = document.getElementById('loginPass');
+
+  if (u === LOGIN_USER && p === LOGIN_PASS) {
+    sessionStorage.setItem(SESSION_KEY, 'ok');
+    errEl.textContent = '';
+    const overlay = document.getElementById('loginOverlay');
+    overlay.classList.add('hidden');
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      showApp();
+    }, 400);
+  } else {
+    errEl.textContent = 'Usuário ou senha incorretos.';
+    userEl.classList.add('shake');
+    passEl.classList.add('shake');
+    passEl.value = '';
+    setTimeout(() => {
+      userEl.classList.remove('shake');
+      passEl.classList.remove('shake');
+    }, 400);
+    setTimeout(() => { errEl.textContent = ''; }, 3000);
+  }
+}
+
+function showApp() {
+  const app = document.getElementById('appRoot');
+  app.style.display = 'flex';
+  app.style.height = '100vh';
+  app.style.width = '100%';
+  openIDB().then(db_ => {
+    idb = db_;
+    renderSidebarFolders();
+    renderDashboard();
+    renderIAHub();
+  }).catch(err => {
+    console.error('IndexedDB falhou:', err);
+    renderSidebarFolders();
+    renderDashboard();
+    renderIAHub();
+  });
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+if (checkSession()) {
+  document.getElementById('loginOverlay').style.display = 'none';
+  showApp();
+} else {
+  // Foca no campo usuário automaticamente
+  setTimeout(() => document.getElementById('loginUser').focus(), 100);
+}
 </script>
 </body>
 </html>
